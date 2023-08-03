@@ -4,30 +4,51 @@ from dotenv import load_dotenv
 load_dotenv()
 from fastapi import FastAPI, Form
 import json
-
+from pydantic import BaseModel
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
-content_system = """Bạn là một model trích xuất dữ liệu văn bản bất động sản từ thông tin miêu tả thành một data json với schema bên dưới
-'location': Địa chỉ,
-'area': Diện tích,
-'price: Giá cho thuê hoặc bán,
-'contact': {
-'name' : Tên người bán,
-'phone' : Số điện thoại người bán
-},
-"details": {
-    "floors": Số tầng,
-    "bedrooms": Số phòng ngủ,
-    "bathrooms": Số phòng tắm,
-    "living_rooms": Số phòng khách,
-    "kitchens": Số phòng bếp,
-    "toilets": Số phòng toilets,
-    "balconies": Ban công (true hoặc false),
-    "furniture": Nội thất như thế nào,
-  }
-"""
+product_info = {
+    "Áo thun nam oversize": {
+        "name": "Áo thun nam",
+        "description": "Áo thun nam mặc mùa hè màu trắng ",
+        "size_chart": "Bảng size: S :1m55-1m65 <50kg, M: 1m65-1m75 50-60kg L:>1m75 >60kg ",
+    },
+    "Áo thun nam oversize ver2": {
+        "name": "Áo thun nam",
+         "description": "Áo thun nam mặc mùa hè màu nâu ",
+        "size_chart": "Bảng size: S :1m55-1m65 <50kg, M: 1m65-1m75 50-60kg L:>1m75 >60kg ",
+    },
+    "Áo thun nam oversize ver3": {
+        "name": "Áo thun nam",
+         "description": "Áo thun nam mặc mùa hè màu hồng ",
+        "size_chart": "Bảng size: S :1m55-1m65 <50kg, M: 1m65-1m75 50-60kg L:>1m75 >60kg ",
+    },
+    "Áo thun nam oversize ver4": {
+        "name": "Áo thun nam",
+         "description": "Áo thun nam mặc mùa hè màu xám ",
+        "size_chart": "Bảng size: S :1m55-1m65 <50kg, M: 1m65-1m75 50-60kg L:>1m75 >60kg ",
+    },
+    "Áo thun nam oversize ver5": {
+        "name": "Áo thun nam",
+         "description": "Áo thun nam mặc mùa hè màu xanh lam ",
+        "size_chart": "Bảng size: S :1m55-1m65 <50kg, M: 1m65-1m75 50-60kg L:>1m75 >60kg ",
+    },
+    "Áo thun nam oversize ver6 ": {
+        "name": "Áo thun nam",
+         "description": "Áo thun nam mặc mùa hè màu vàng ",
+        "size_chart": "Bảng size: S :1m55-1m65 <50kg, M: 1m65-1m75 50-60kg L:>1m75 >60kg ",
+    },
+    
+}
+
+# Lời nhắc có sẵn (prompt) sẽ bao gồm thông tin sản phẩm và bảng size
+content_system = "Chào mừng bạn đến với cửa hàng quần áo. Dưới đây là thông tin về một số sản phẩm:\n"
+
+for product_key, product in product_info.items():
+    content_system += f"- {product['name']}: {product['description']} \n size: {product['size_chart']}"
 
 
+content_system += "\nNếu bạn quan tâm đến vấn đề gì hãy cứ hỏi tôi."
 
 
 
@@ -40,44 +61,49 @@ app = FastAPI(
     redoc_url='/redoc'
 )
 
-@app.get('//real_estate_information_extraction_model')
+@app.get('/mail-translation-model')
 def get_service():
-    return 'Real Estate Information Extraction Model'
+    return 'mail-translation-model'
 
 
-    
+class TextBody(BaseModel):
+    text: str
 
-@app.post("//real_estate_information_extraction_model")
-def Real_Estate_Information_Extraction_Model(info: str = Form()):
-    
+@app.post("/translate")
+def translate(info: TextBody):
 
-
+    print(str)
     history_chat = [
             {"role": "system", "content": content_system},
         ]
-    history_chat.append({"role": "user", "content": info})
+    history_chat.append({"role": "user", "content": info.text})
     completion = openai.ChatCompletion.create(
                         model="gpt-3.5-turbo-0301",
                         messages=history_chat
                         )
     result = completion.choices[0].message['content']
-    return json.loads(result)
+    return result
 
-@app.post("//real_estate_information_extraction_model_no_config")
-def Real_Estate_Information_Extraction_Model_No_Config(info: str = Form()):
-    
-
+@app.get("/question")
+def question(text: str):
+    print(content_system)
     history_chat = [
-            {"role": "system", "content": "Bạn là một model trích xuất dữ liệu văn bản bất động sản từ thông tin miêu tả thành một data json"},
-        ]
-    history_chat.append({"role": "user", "content": info})
+        {"role": "system", "content": content_system},
+        {"role": "user", "content": text},
+    ]
+    temperature = 1.0
     completion = openai.ChatCompletion.create(
-                        model="gpt-3.5-turbo-0301",
-                        messages=history_chat
-                        )
-    result = completion.choices[0].message['content']
-    return json.loads(result)
-
-
+        model="gpt-3.5-turbo-0301",
+        messages=history_chat,
+        temperature=temperature
+    )
     
+    result = completion.choices[0].message['content']
+    return result
+
+
+# info = input()
+# print(translate(info))
+
+
 
